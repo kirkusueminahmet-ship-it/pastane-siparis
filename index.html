@@ -293,11 +293,20 @@ function testConn(){
   document.getElementById('setupStatus').textContent='⏳ Test ediliyor...';
   document.getElementById('setupStatus').className='status';
   var d={test:true,branch:'TEST',date:fmtDate(new Date()),time:fmtTime(new Date()),items:{'Test Ürün':1},special:'Bağlantı testi',cakes:[]};
-  fetch(u,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(d)}).then(function(){
-    document.getElementById('setupStatus').textContent='✅ Gönderildi! Google Sheets tablonuzu kontrol edin.';document.getElementById('setupStatus').className='status ok';
-  }).catch(function(){
-    document.getElementById('setupStatus').textContent='❌ Hata! URL\'yi kontrol edin.';document.getElementById('setupStatus').className='status err';
-  });
+  var encoded=encodeURIComponent(JSON.stringify(d));
+  var script=document.createElement('script');
+  script.src=u+'?d='+encoded+'&cb='+Date.now();
+  script.onload=function(){
+    document.getElementById('setupStatus').textContent='✅ Gönderildi! Sheets\'i kontrol edin.';
+    document.getElementById('setupStatus').className='status ok';
+    document.head.removeChild(script);
+  };
+  script.onerror=function(){
+    document.getElementById('setupStatus').textContent='❌ Hata! URL\'yi kontrol edin.';
+    document.getElementById('setupStatus').className='status err';
+    document.head.removeChild(script);
+  };
+  document.head.appendChild(script);
 }
 
 // ===== TARİH =====
@@ -389,19 +398,17 @@ function buildWaMsg(d){
   return m;
 }
 
-// ===== SHEETS'E GÖNDER (form yöntemi - en güvenilir) =====
+// ===== SHEETS'E GÖNDER =====
 function sendToSheets(data){
   var u=getUrl();if(!u)return Promise.resolve('no_url');
   return new Promise(function(resolve){
     try{
-      var form=document.createElement('form');
-      form.method='POST';form.action=u;form.target='hidden_iframe';form.style.display='none';
-      var input=document.createElement('input');
-      input.type='hidden';input.name='data';input.value=JSON.stringify(data);
-      form.appendChild(input);
-      document.body.appendChild(form);
-      form.submit();
-      setTimeout(function(){document.body.removeChild(form);resolve('ok')},2000);
+      var encoded=encodeURIComponent(JSON.stringify(data));
+      var script=document.createElement('script');
+      script.src=u+'?d='+encoded+'&cb='+Date.now();
+      script.onload=function(){resolve('ok');document.head.removeChild(script)};
+      script.onerror=function(){resolve('error');document.head.removeChild(script)};
+      document.head.appendChild(script);
     }catch(e){resolve('error')}
   });
 }
