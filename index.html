@@ -389,11 +389,21 @@ function buildWaMsg(d){
   return m;
 }
 
-// ===== SHEETS'E GÖNDER =====
+// ===== SHEETS'E GÖNDER (form yöntemi - en güvenilir) =====
 function sendToSheets(data){
   var u=getUrl();if(!u)return Promise.resolve('no_url');
-  return fetch(u,{method:'POST',mode:'no-cors',headers:{'Content-Type':'text/plain'},body:JSON.stringify(data)})
-    .then(function(){return 'ok'}).catch(function(){return 'error'});
+  return new Promise(function(resolve){
+    try{
+      var form=document.createElement('form');
+      form.method='POST';form.action=u;form.target='hidden_iframe';form.style.display='none';
+      var input=document.createElement('input');
+      input.type='hidden';input.name='data';input.value=JSON.stringify(data);
+      form.appendChild(input);
+      document.body.appendChild(form);
+      form.submit();
+      setTimeout(function(){document.body.removeChild(form);resolve('ok')},2000);
+    }catch(e){resolve('error')}
+  });
 }
 
 // ===== GÖNDER =====
@@ -426,5 +436,6 @@ updateConnInfo();
 // PWA kurulduysa ipucunu gizle
 if(window.matchMedia('(display-mode: standalone)').matches) document.getElementById('installHint').style.display='none';
 </script>
+<iframe name="hidden_iframe" style="display:none"></iframe>
 </body>
 </html>
