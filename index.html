@@ -236,7 +236,7 @@ function fmtDate(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getM
 function fmtTime(d){return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0')}
 function toISO(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
 function getYarin(){var d=new Date();d.setDate(d.getDate()+1);return d}
-function getUrl(){return localStorage.getItem('ps_url')||''}
+function getUrl(){return 'https://script.google.com/macros/s/AKfycbxTVRrWwAdN8XUyts1YOY60AdWbYQX_bdGNbddTvFbyqCRCJB4fSLELWG_P8T0uV4tUUA/exec'}
 function getWa(){return localStorage.getItem('ps_wa')||''}
 
 function showToast(msg,type){
@@ -250,9 +250,7 @@ function showScreen(id){document.querySelectorAll('.screen').forEach(function(s)
 function goHome(){showScreen('homeScreen');document.getElementById('homeTarih').textContent=fmtDate(new Date());updateConnInfo()}
 
 function updateConnInfo(){
-  var u=getUrl();
-  var html=u?'<span class="conn-dot conn-ok"></span> Google Sheets bağlı':'<span class="conn-dot conn-no"></span> <a href="#" onclick="openSetup();return false" style="color:#c0392b">Sheets bağlantısı yok — Ayarlar</a>';
-  document.getElementById('connInfo').innerHTML=html;
+  document.getElementById('connInfo').innerHTML='<span class="conn-dot conn-ok"></span> Google Sheets bağlı';
 }
 
 // ===== AYARLAR =====
@@ -284,29 +282,20 @@ function saveSheetsLink(){
   else{localStorage.removeItem('ps_sheets_link');document.getElementById('sheetsStatus').textContent='Link silindi';document.getElementById('sheetsStatus').className='status err'}
 }
 function openSheets(){
-  var link=localStorage.getItem('ps_sheets_link')||'';
-  if(!link){showToast('Önce Ayarlar\'dan Sheets linkini girin','error');return}
-  window.open(link,'_blank');
+  window.open('https://docs.google.com/spreadsheets/d/1dCoHIBkJhTqqixjsKYA2Ej93npniF1wakHrKBD-QhdE/edit','_blank');
 }
 function testConn(){
   var u=getUrl();if(!u){showToast('Önce URL girin','error');return}
   document.getElementById('setupStatus').textContent='⏳ Test ediliyor...';
   document.getElementById('setupStatus').className='status';
-  var d={test:true,branch:'TEST',date:fmtDate(new Date()),time:fmtTime(new Date()),items:{'Test Ürün':1},special:'Bağlantı testi',cakes:[]};
+  var d={branch:'TEST',date:fmtDate(new Date()),time:fmtTime(new Date()),items:{'Test Urun':1},special:'Baglanti testi',cakes:[]};
   var encoded=encodeURIComponent(JSON.stringify(d));
-  var script=document.createElement('script');
-  script.src=u+'?d='+encoded+'&cb='+Date.now();
-  script.onload=function(){
+  var img=new Image();
+  img.onload=img.onerror=function(){
     document.getElementById('setupStatus').textContent='✅ Gönderildi! Sheets\'i kontrol edin.';
     document.getElementById('setupStatus').className='status ok';
-    document.head.removeChild(script);
   };
-  script.onerror=function(){
-    document.getElementById('setupStatus').textContent='❌ Hata! URL\'yi kontrol edin.';
-    document.getElementById('setupStatus').className='status err';
-    document.head.removeChild(script);
-  };
-  document.head.appendChild(script);
+  img.src=u+'?d='+encoded+'&t='+Date.now();
 }
 
 // ===== TARİH =====
@@ -402,14 +391,10 @@ function buildWaMsg(d){
 function sendToSheets(data){
   var u=getUrl();if(!u)return Promise.resolve('no_url');
   return new Promise(function(resolve){
-    try{
-      var encoded=encodeURIComponent(JSON.stringify(data));
-      var script=document.createElement('script');
-      script.src=u+'?d='+encoded+'&cb='+Date.now();
-      script.onload=function(){resolve('ok');document.head.removeChild(script)};
-      script.onerror=function(){resolve('error');document.head.removeChild(script)};
-      document.head.appendChild(script);
-    }catch(e){resolve('error')}
+    var encoded=encodeURIComponent(JSON.stringify(data));
+    var img=new Image();
+    img.onload=img.onerror=function(){resolve('ok')};
+    img.src=u+'?d='+encoded+'&t='+Date.now();
   });
 }
 
