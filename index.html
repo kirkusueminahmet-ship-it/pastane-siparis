@@ -131,6 +131,17 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8EE;min-height:1
 </div>
 <div class="cats" id="catTabs"></div>
 <div class="products" id="productList"></div>
+<div style="padding:8px 12px">
+  <button class="cake-add-btn" onclick="showAddProduct()">+ Yeni Ürün Ekle</button>
+  <div id="addProductBox" style="display:none;margin-top:8px;background:#fff;border:2px solid #EFEBE9;border-radius:10px;padding:10px">
+    <input type="text" id="newProductName" placeholder="Ürün adı yazın..." style="width:100%;padding:8px;border:2px solid #D7CCC8;border-radius:8px;font-size:13px;margin-bottom:6px;outline:none;font-family:inherit;color:#4E342E">
+    <div style="display:flex;gap:6px">
+      <input type="number" id="newProductQty" inputmode="numeric" min="1" value="1" style="width:60px;padding:8px;border:2px solid #D7CCC8;border-radius:8px;font-size:13px;text-align:center;outline:none;color:#4E342E">
+      <button onclick="addCustomProduct()" style="flex:1;padding:8px;background:#5D4037;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Ekle</button>
+      <button onclick="hideAddProduct()" style="padding:8px 12px;background:#EFEBE9;color:#8D6E63;border:none;border-radius:8px;font-size:13px;cursor:pointer">İptal</button>
+    </div>
+  </div>
+</div>
 <div class="cake-section">
   <div class="cake-title">🎂 Özel Pasta Siparişleri</div>
   <div id="cakeList"></div>
@@ -202,7 +213,8 @@ var PRODUCTS = {
   ],
   "DONDURMA 🍦": [
     "Sade","Kakaolu","Karamel","Damla Sakızı","Balbadem","Çilek","Tahin",
-    "Antep Fıstık","Karadüt","Parça Çikolata","Ceviz","Füritti","Limon","Kavun"
+    "Antep Fıstık","Karadüt","Parça Çikolata","Ceviz","Füritti","Limon","Kavun",
+    "Nutella","İncirli","Nescafe","Muzlu"
   ],
   "HELVA 🍯": [
     "Sade Helva","Kakaolu Helva","Fıstıklı Helva","Tahin 1000 gr","Tahin 500 gr",
@@ -363,6 +375,19 @@ function renderCakes(){
     else{h+='<input type="file" accept="image/*" capture="environment" style="display:none" id="cp'+i+'" onchange="handleCakePhoto('+i+',this)"><div class="cake-photo-btn" onclick="document.getElementById(\'cp'+i+'\').click()">📷 Fotoğraf Ekle / Çek</div>'}
     h+='</div></div>'});
   document.getElementById('cakeList').innerHTML=h;
+}
+
+// ===== ÜRÜN EKLEME =====
+function showAddProduct(){document.getElementById('addProductBox').style.display='block';document.getElementById('newProductName').focus()}
+function hideAddProduct(){document.getElementById('addProductBox').style.display='none';document.getElementById('newProductName').value='';document.getElementById('newProductQty').value='1'}
+function addCustomProduct(){
+  var name=document.getElementById('newProductName').value.trim();
+  var qty=parseInt(document.getElementById('newProductQty').value)||1;
+  if(!name){showToast('Ürün adı yazın','error');return}
+  currentItems[name]=(currentItems[name]||0)+qty;
+  hideAddProduct();
+  updateBadge();
+  showToast(name+' ('+qty+') eklendi');
 }
 
 // ===== VERİ OLUŞTUR =====
