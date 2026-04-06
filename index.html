@@ -141,6 +141,7 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8EE;min-height:1
       <button onclick="hideAddProduct()" style="padding:8px 12px;background:#EFEBE9;color:#8D6E63;border:none;border-radius:8px;font-size:13px;cursor:pointer">İptal</button>
     </div>
   </div>
+  <div id="customItemsList" style="display:none"></div>
 </div>
 <div class="cake-section">
   <div class="cake-title">🎂 Özel Pasta Siparişleri</div>
@@ -384,8 +385,11 @@ function addCustomProduct(){
   var name=document.getElementById('newProductName').value.trim();
   var qty=parseInt(document.getElementById('newProductQty').value)||1;
   if(!name){showToast('Ürün adı yazın','error');return}
+  // Aktif kategoriye ekle
+  if(PRODUCTS[activeCategory].indexOf(name)===-1) PRODUCTS[activeCategory].push(name);
   currentItems[name]=(currentItems[name]||0)+qty;
   hideAddProduct();
+  renderProducts();
   updateBadge();
   showToast(name+' ('+qty+') eklendi');
 }
