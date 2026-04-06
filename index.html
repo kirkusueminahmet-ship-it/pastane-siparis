@@ -131,18 +131,6 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8EE;min-height:1
 </div>
 <div class="cats" id="catTabs"></div>
 <div class="products" id="productList"></div>
-<div style="padding:8px 12px">
-  <button class="cake-add-btn" onclick="showAddProduct()">+ Yeni Ürün Ekle</button>
-  <div id="addProductBox" style="display:none;margin-top:8px;background:#fff;border:2px solid #EFEBE9;border-radius:10px;padding:10px">
-    <input type="text" id="newProductName" placeholder="Ürün adı yazın..." style="width:100%;padding:8px;border:2px solid #D7CCC8;border-radius:8px;font-size:13px;margin-bottom:6px;outline:none;font-family:inherit;color:#4E342E">
-    <div style="display:flex;gap:6px">
-      <input type="number" id="newProductQty" inputmode="numeric" min="1" value="1" style="width:60px;padding:8px;border:2px solid #D7CCC8;border-radius:8px;font-size:13px;text-align:center;outline:none;color:#4E342E">
-      <button onclick="addCustomProduct()" style="flex:1;padding:8px;background:#5D4037;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Ekle</button>
-      <button onclick="hideAddProduct()" style="padding:8px 12px;background:#EFEBE9;color:#8D6E63;border:none;border-radius:8px;font-size:13px;cursor:pointer">İptal</button>
-    </div>
-  </div>
-  <div id="customItemsList" style="display:none"></div>
-</div>
 <div class="cake-section">
   <div class="cake-title">🎂 Özel Pasta Siparişleri</div>
   <div id="cakeList"></div>
@@ -206,7 +194,7 @@ var PRODUCTS = {
     "Klasik Tatlı","Klasik Tuzlu","Tuzlu Simit","Un Kurabiyesi Byz",
     "Elmalı Dudak","Elmalı Bohça","Adet Tahinli Kura","Adet Çikolatalı Krb","Adet Damla Çik.Kur."
   ],
-  "SÜTLÜ 🍮": ["Magnolia","Çilekli Magnolia","Oreolu Spoonfull","Spangüle","Sütlaç","Tramisu","Traliçe","Meyva Şöleni"],
+  "SÜTLÜ 🍮": ["Oreolu Magnolia","Çilekli Magnolia","Spoonfull","Spangüle","Sütlaç","Tramisu","Traliçe","Meyva Şöleni"],
   "TATLI 🥮": [
     "Ev Baklava","Cevizli Baklava","Soğuk Baklava","Bülbül Yuvası",
     "Dürüm Cevizli","Burma Kadaif","Kalbur","Antepli Baklava",
