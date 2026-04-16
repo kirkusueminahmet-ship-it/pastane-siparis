@@ -121,7 +121,12 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8EE;min-height:1
 <div class="topbar">
   <button class="topbar-back" onclick="goHome()">← Geri</button>
   <div><h2 id="orderBranch"></h2><div class="date" id="orderDate"></div></div>
+  <button id="editLastBtn" onclick="editLastOrder()" style="margin-left:auto;background:#E65100;color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11px;font-weight:600;cursor:pointer;display:none">✏️ Son Siparişi Düzenle</button>
   <span class="badge" id="orderBadge" style="display:none">0</span>
+</div>
+<div id="editBanner" style="display:none;background:#FFF3E0;border-bottom:2px solid #E65100;padding:8px 12px;font-size:12px;color:#BF360C;font-weight:600">
+  ✏️ DÜZENLEME MODU — Değişiklikleri kaydedin
+  <button onclick="cancelEdit()" style="float:right;background:#fff;border:1px solid #E65100;color:#E65100;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">İptal</button>
 </div>
 <div class="date-label">📅 Sipariş Tarihi</div>
 <div class="date-bar">
@@ -228,6 +233,8 @@ var CAKE_TYPES = [
 // ===== DURUM =====
 var currentBranch="", currentItems={}, activeCategory=Object.keys(PRODUCTS)[0];
 var toastTimer=null, selectedDate="", cakeOrders=[];
+var editingOrderId=null;
+var lastSentOrder=null;
 
 // ===== YARDIMCI =====
 function fmtDate(d){return String(d.getDate()).padStart(2,'0')+'.'+String(d.getMonth()+1).padStart(2,'0')+'.'+d.getFullYear()}
@@ -309,11 +316,15 @@ function pickDate(type){
 
 // ===== SİPARİŞ =====
 function openOrder(branch){
-  currentBranch=branch;currentItems={};cakeOrders=[];
+  currentBranch=branch;currentItems={};cakeOrders=[];editingOrderId=null;
   document.getElementById('specialInput').value='';
   document.getElementById('orderBranch').textContent=branch+' Şubesi';
   activeCategory=Object.keys(PRODUCTS)[0];
-  pickDate('yarin');renderCats();renderProducts();renderCakes();updateBadge();showScreen('orderScreen');
+  pickDate('yarin');renderCats();renderProducts();renderCakes();updateBadge();
+  updateEditBanner();
+  var last=loadLastOrder(branch);
+  document.getElementById('editLastBtn').style.display=last?'inline-block':'none';
+  showScreen('orderScreen');
 }
 function renderCats(){
   var h='';Object.keys(PRODUCTS).forEach(function(c){h+='<button class="cat-btn'+(c===activeCategory?' active':'')+'" onclick="switchCat(\''+c.replace(/'/g,"\\'")+'\')">'+c+'</button>'});
@@ -366,29 +377,16 @@ function renderCakes(){
   document.getElementById('cakeList').innerHTML=h;
 }
 
-// ===== ÜRÜN EKLEME =====
-function showAddProduct(){document.getElementById('addProductBox').style.display='block';document.getElementById('newProductName').focus()}
-function hideAddProduct(){document.getElementById('addProductBox').style.display='none';document.getElementById('newProductName').value='';document.getElementById('newProductQty').value='1'}
-function addCustomProduct(){
-  var name=document.getElementById('newProductName').value.trim();
-  var qty=parseInt(document.getElementById('newProductQty').value)||1;
-  if(!name){showToast('Ürün adı yazın','error');return}
-  // Aktif kategoriye ekle
-  if(PRODUCTS[activeCategory].indexOf(name)===-1) PRODUCTS[activeCategory].push(name);
-  currentItems[name]=(currentItems[name]||0)+qty;
-  hideAddProduct();
-  renderProducts();
-  updateBadge();
-  showToast(name+' ('+qty+') eklendi');
-}
-
 // ===== VERİ OLUŞTUR =====
 function buildOrder(){
   var sp=document.getElementById('specialInput').value.trim();
   if(Object.keys(currentItems).length===0 && !sp && cakeOrders.length===0) return null;
   var cakesClean=[];
   cakeOrders.forEach(function(c){cakesClean.push({type:c.type,text:c.text,note:c.note})});
-  return {branch:currentBranch,date:selectedDate,time:fmtTime(new Date()),items:currentItems,special:sp,cakes:cakesClean};
+  var order={branch:currentBranch,date:selectedDate,time:fmtTime(new Date()),items:currentItems,special:sp,cakes:cakesClean};
+  // Eğer düzenleme modundaysak ID ekle
+  if(editingOrderId) order.editId=editingOrderId;
+  return order;
 }
 
 // ===== WHATSAPP MESAJI =====
@@ -416,13 +414,88 @@ function sendToSheets(data){
 function submitOrder(){
   var d=buildOrder();if(!d){showToast('Lütfen en az bir ürün girin!','error');return}
   if(!getUrl()){showToast('Önce Ayarlar\'dan Google Sheets URL\'si girin','error');return}
+  // ID oluştur (yeni sipariş ise)
+  if(!d.editId) d.orderId=Date.now()+'_'+currentBranch;
+  else d.orderId=d.editId;
   document.getElementById('overlay').style.display='flex';
-  document.getElementById('overlayText').textContent='Sheets\'e gönderiliyor...';
+  document.getElementById('overlayText').textContent=d.editId?'Güncelleniyor...':'Sheets\'e gönderiliyor...';
   sendToSheets(d).then(function(r){
     document.getElementById('overlay').style.display='none';
     if(r==='error'){showToast('Hata! İnternet bağlantısını kontrol edin','error')}
-    else{showToast('✅ Sipariş gönderildi!');setTimeout(goHome,1200)}
+    else{
+      // Son gönderilen siparişi sakla
+      lastSentOrder={
+        orderId:d.orderId,
+        branch:d.branch,
+        date:d.date,
+        items:JSON.parse(JSON.stringify(d.items)),
+        special:d.special,
+        cakes:JSON.parse(JSON.stringify(d.cakes)),
+        cakesOriginal:JSON.parse(JSON.stringify(cakeOrders))
+      };
+      saveLastOrder();
+      editingOrderId=null;
+      showToast(d.editId?'✅ Sipariş güncellendi!':'✅ Sipariş gönderildi!');
+      setTimeout(goHome,1200);
+    }
   });
+}
+
+function saveLastOrder(){
+  try{localStorage.setItem('ps_last_'+currentBranch, JSON.stringify(lastSentOrder))}catch(e){}
+}
+
+function loadLastOrder(branch){
+  try{
+    var d=localStorage.getItem('ps_last_'+branch);
+    return d?JSON.parse(d):null;
+  }catch(e){return null}
+}
+
+function editLastOrder(){
+  var last=loadLastOrder(currentBranch);
+  if(!last){showToast('Düzenlenecek sipariş yok','error');return}
+  editingOrderId=last.orderId;
+  selectedDate=last.date;
+  currentItems=JSON.parse(JSON.stringify(last.items));
+  cakeOrders=last.cakesOriginal?JSON.parse(JSON.stringify(last.cakesOriginal)):[];
+  document.getElementById('specialInput').value=last.special||'';
+  // Listede olmayan ürünleri PRODUCTS'a ekle
+  for(var name in currentItems){
+    var bulundu=false;
+    for(var cat in PRODUCTS){
+      if(PRODUCTS[cat].indexOf(name)!==-1){bulundu=true;break}
+    }
+    if(!bulundu) PRODUCTS[Object.keys(PRODUCTS)[0]].push(name);
+  }
+  document.getElementById('orderDate').textContent='Düzenleme: '+selectedDate;
+  renderProducts();
+  renderCakes();
+  updateBadge();
+  updateEditBanner();
+  showToast('Son sipariş yüklendi - düzenleyebilirsiniz');
+}
+
+function updateEditBanner(){
+  var banner=document.getElementById('editBanner');
+  if(editingOrderId){
+    banner.style.display='block';
+  }else{
+    banner.style.display='none';
+  }
+}
+
+function cancelEdit(){
+  editingOrderId=null;
+  currentItems={};
+  cakeOrders=[];
+  document.getElementById('specialInput').value='';
+  pickDate('yarin');
+  renderProducts();
+  renderCakes();
+  updateBadge();
+  updateEditBanner();
+  showToast('Düzenleme iptal edildi');
 }
 
 function submitWhatsApp(){
