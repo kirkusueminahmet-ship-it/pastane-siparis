@@ -125,8 +125,11 @@ body{font-family:'Segoe UI',system-ui,sans-serif;background:#FFF8EE;min-height:1
   <span class="badge" id="orderBadge" style="display:none">0</span>
 </div>
 <div id="editBanner" style="display:none;background:#FFF3E0;border-bottom:2px solid #E65100;padding:8px 12px;font-size:12px;color:#BF360C;font-weight:600">
-  ✏️ DÜZENLEME MODU — Değişiklikleri kaydedin
-  <button onclick="cancelEdit()" style="float:right;background:#fff;border:1px solid #E65100;color:#E65100;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">İptal</button>
+  ✏️ DÜZENLEME MODU — Ürünleri, pastaları ve notları değiştirip kaydedin
+  <div style="float:right;display:flex;gap:4px">
+    <button onclick="clearOrder()" style="background:#FFEBEE;border:1px solid #C62828;color:#C62828;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">Siparişi Sil</button>
+    <button onclick="cancelEdit()" style="background:#fff;border:1px solid #E65100;color:#E65100;border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer">İptal</button>
+  </div>
 </div>
 <div class="date-label">📅 Sipariş Tarihi</div>
 <div class="date-bar">
@@ -208,7 +211,7 @@ var PRODUCTS = {
   "DONDURMA 🍦": [
     "Sade","Kakaolu","Karamel","Damla Sakızı","Balbadem","Çilek","Tahin",
     "Antep Fıstık","Karadüt","Parça Çikolata","Ceviz","Füritti","Limon","Kavun",
-    "Nutella","İncirli","Kivi","Muzlu"
+    "Nutella","İncirli","Kivi","Muzlu","Don. Fıstığı","Don. Sosu"
   ],
   "HELVA 🍯": [
     "Sade Helva","Kakaolu Helva","Fıstıklı Helva","Tahin 1000 gr","Tahin 500 gr",
@@ -460,6 +463,7 @@ function editLastOrder(){
   currentItems=JSON.parse(JSON.stringify(last.items));
   cakeOrders=last.cakesOriginal?JSON.parse(JSON.stringify(last.cakesOriginal)):[];
   document.getElementById('specialInput').value=last.special||'';
+  document.getElementById('orderDate').textContent='Düzenleme: '+selectedDate;
   // Listede olmayan ürünleri PRODUCTS'a ekle
   for(var name in currentItems){
     var bulundu=false;
@@ -468,12 +472,14 @@ function editLastOrder(){
     }
     if(!bulundu) PRODUCTS[Object.keys(PRODUCTS)[0]].push(name);
   }
-  document.getElementById('orderDate').textContent='Düzenleme: '+selectedDate;
+  renderCats();
   renderProducts();
   renderCakes();
   updateBadge();
   updateEditBanner();
-  showToast('Son sipariş yüklendi - düzenleyebilirsiniz');
+  // Gönder butonunu güncelle
+  document.querySelector('.submit-btn').textContent='✓ Değişiklikleri Kaydet';
+  showToast('Son sipariş yüklendi — düzenleyebilirsiniz');
 }
 
 function updateEditBanner(){
@@ -482,6 +488,9 @@ function updateEditBanner(){
     banner.style.display='block';
   }else{
     banner.style.display='none';
+    // Buton yazısını geri al
+    var btn=document.querySelector('.submit-btn');
+    if(btn) btn.textContent='✓ Siparişi Gönder';
   }
 }
 
@@ -491,11 +500,34 @@ function cancelEdit(){
   cakeOrders=[];
   document.getElementById('specialInput').value='';
   pickDate('yarin');
+  renderCats();
   renderProducts();
   renderCakes();
   updateBadge();
   updateEditBanner();
   showToast('Düzenleme iptal edildi');
+}
+
+function clearOrder(){
+  if(!confirm('Siparişi tamamen silmek istediğinize emin misiniz?')) return;
+  // Eğer düzenleme modundaysa, boş sipariş gönder
+  if(editingOrderId){
+    var d={branch:currentBranch,date:selectedDate,time:fmtTime(new Date()),items:{},special:'',cakes:[],editId:editingOrderId,orderId:editingOrderId};
+    sendToSheets(d).then(function(){
+      // localStorage'dan da sil
+      try{localStorage.removeItem('ps_last_'+currentBranch)}catch(e){}
+      editingOrderId=null;
+      currentItems={};
+      cakeOrders=[];
+      document.getElementById('specialInput').value='';
+      updateEditBanner();
+      renderProducts();
+      renderCakes();
+      updateBadge();
+      showToast('✅ Sipariş silindi');
+      setTimeout(goHome,1200);
+    });
+  }
 }
 
 function submitWhatsApp(){
