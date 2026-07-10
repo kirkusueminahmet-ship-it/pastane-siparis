@@ -403,20 +403,29 @@ function buildWaMsg(d){
 }
 
 // ===== SHEETS'E GÖNDER =====
+var isSending=false;
 function sendToSheets(data){
   var u=getUrl();if(!u)return Promise.resolve('no_url');
   return new Promise(function(resolve){
     var encoded=encodeURIComponent(JSON.stringify(data));
     var img=new Image();
-    img.onload=img.onerror=function(){resolve('ok')};
+    var resolved=false;
+    img.onload=img.onerror=function(){if(!resolved){resolved=true;resolve('ok')}};
     img.src=u+'?d='+encoded+'&t='+Date.now();
+    // 10 saniye timeout
+    setTimeout(function(){if(!resolved){resolved=true;resolve('ok')}},10000);
   });
 }
 
 // ===== GÖNDER =====
 function submitOrder(){
+  if(isSending)return; // çift basma engeli
   var d=buildOrder();if(!d){showToast('Lütfen en az bir ürün girin!','error');return}
   if(!getUrl()){showToast('Önce Ayarlar\'dan Google Sheets URL\'si girin','error');return}
+  isSending=true;
+  // Butonu devre dışı bırak
+  var btn=document.querySelector('.submit-btn');
+  btn.disabled=true;btn.textContent='Gönderiliyor...';
   // ID oluştur (yeni sipariş ise)
   if(!d.editId) d.orderId=Date.now()+'_'+currentBranch;
   else d.orderId=d.editId;
@@ -424,7 +433,13 @@ function submitOrder(){
   document.getElementById('overlayText').textContent=d.editId?'Güncelleniyor...':'Sheets\'e gönderiliyor...';
   sendToSheets(d).then(function(r){
     document.getElementById('overlay').style.display='none';
-    if(r==='error'){showToast('Hata! İnternet bağlantısını kontrol edin','error')}
+    isSending=false;
+    var btn=document.querySelector('.submit-btn');
+    btn.disabled=false;
+    if(r==='error'){
+      btn.textContent=d.editId?'✓ Değişiklikleri Kaydet':'✓ Siparişi Gönder';
+      showToast('Hata! İnternet bağlantısını kontrol edin','error');
+    }
     else{
       // Son gönderilen siparişi sakla
       lastSentOrder={
